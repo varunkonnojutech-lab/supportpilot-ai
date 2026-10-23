@@ -1,0 +1,25 @@
+namespace SupportPilot.Api.Dtos;
+
+public record RegisterRequest(string BusinessName, string Email, string Password);
+public record LoginRequest(string Email, string Password);
+public record AuthResponse(string Token, string Email, string BusinessName, string Role, string Plan);
+public record MeResponse(string Email, string BusinessName, string Role, string Plan);
+public record DocumentRequest(string Title, string Type, string Content);
+public record DocumentResponse(Guid Id, string Title, string Type, string Content, int ChunkCount, DateTime CreatedAt, DateTime UpdatedAt);
+public record ReindexResponse(int Documents, int Chunks);
+public record StatsResponse(int Documents, int Chunks, int DocumentLimit, int ChatsThisMonth, int ChatLimit);
+public record ConversationSummaryResponse(Guid Id, string SessionId, DateTime StartedAt, DateTime LastMessageAt, int MessageCount);
+public record CitationDto(string DocumentTitle, string Snippet);
+public record MessageResponse(Guid Id, string Role, string Content, List<CitationDto> Citations, string? Feedback, DateTime CreatedAt);
+public record ConversationDetailResponse(Guid Id, string SessionId, DateTime StartedAt, List<MessageResponse> Messages);
+public record WidgetSettingsResponse(string WidgetKey, string Color, string Greeting, string BusinessName);
+public record WidgetSettingsRequest(string Color, string Greeting);
+public record RegenerateKeyResponse(string WidgetKey);
+public record BillingStatusResponse(string Plan, bool Configured);
+public record CheckoutRequest(string Plan);
+public record CheckoutResponse(string Url);
+public record PublicWidgetResponse(string BusinessName, string Color, string Greeting);
+public record PublicChatRequest(string WidgetKey, string? SessionId, string Message);
+public record PublicChatResponse(string SessionId, Guid AssistantMessageId, string Answer, List<CitationDto> Citations);
+public record FeedbackRequest(string SessionId, Guid MessageId, string Rating);
+public record ErrorResponse(string Error);

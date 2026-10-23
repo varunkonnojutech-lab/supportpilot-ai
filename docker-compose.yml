@@ -1,0 +1,69 @@
+# One-command run:  docker compose up --build
+#   Landing page + dashboard:  http://localhost:3000
+#   Live demo store:            http://localhost:3000/demo.html
+#   API (direct):               http://localhost:8080
+#
+# Demo login:    demo@acmeoutdoors.com / Demo123!
+# Demo business: Acme Outdoors  (widget key: sp_demo_acme)
+#
+# No keys needed: the built-in offline AI provider is the default and
+# Stripe billing stays disabled until you add test keys. To configure
+# either one, copy .env.example to .env, fill in values, and recreate
+# the api service (`docker compose up --build` again).
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/SupportPilot.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:8080
+      # SQLite file on the named volume below. The API creates the
+      # /app/data directory and the database file (EF EnsureCreated)
+      # on first run.
+      ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:-Data Source=/app/data/supportpilot.db}
+      # DEV DEFAULT ONLY — set a long random Jwt__Key in .env for any
+      # real deployment (see docs/deploy.md).
+      Jwt__Key: ${Jwt__Key:-dev-only-signing-key-change-in-production-supportpilot-2026}
+      # AI provider: offline (default, zero keys) | openai
+      Ai__Provider: ${Ai__Provider:-offline}
+      OpenAi__ApiKey: ${OpenAi__ApiKey:-}
+      OpenAi__BaseUrl: ${OpenAi__BaseUrl:-https://api.openai.com/v1}
+      OpenAi__ChatModel: ${OpenAi__ChatModel:-gpt-4o-mini}
+      OpenAi__EmbeddingModel: ${OpenAi__EmbeddingModel:-text-embedding-3-small}
+      # Stripe (test mode). Empty = billing disabled gracefully.
+      Stripe__SecretKey: ${Stripe__SecretKey:-}
+      Stripe__PublishableKey: ${Stripe__PublishableKey:-}
+      Stripe__WebhookSecret: ${Stripe__WebhookSecret:-}
+      Stripe__StarterPriceId: ${Stripe__StarterPriceId:-}
+      Stripe__ProPriceId: ${Stripe__ProPriceId:-}
+      # Redirect targets point at the web app as served by this compose stack
+      # (port 3000); override if you deploy the web app on another origin.
+      Stripe__SuccessUrl: ${Stripe__SuccessUrl:-http://localhost:3000/billing?status=success}
+      Stripe__CancelUrl: ${Stripe__CancelUrl:-http://localhost:3000/billing?status=cancelled}
+      Stripe__PortalReturnUrl: ${Stripe__PortalReturnUrl:-http://localhost:3000/billing}
+    ports:
+      - "8080:8080"
+    volumes:
+      - api-data:/app/data
+    healthcheck:
+      # Tolerant check: /health if the API exposes it, otherwise any
+      # HTTP response from / proves the server is up.
+      test: ["CMD-SHELL", "curl -fs http://localhost:8080/health || curl -fs http://localhost:8080/ || curl -s -o /dev/null http://localhost:8080/swagger"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  api-data:

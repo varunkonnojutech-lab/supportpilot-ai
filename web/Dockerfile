@@ -1,0 +1,16 @@
+# Build context is the web/ folder (see docker-compose.yml).
+FROM node:20-alpine AS build
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY . ./
+RUN npm run build
+
+FROM nginx:alpine AS runtime
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+# The Vite build output also contains the static files from public/,
+# including demo.html and widget/supportpilot-widget.js.
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80
